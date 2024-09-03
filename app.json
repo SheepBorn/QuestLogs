@@ -1,7 +1,8 @@
 {
   "expo": {
     "name": "QuestLogs",
-    "slug": "QuestLogs",
+    "slug": "questlogs",
+    "scheme": "QuestLogs",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -22,6 +23,18 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "74a8f61f-0aca-44ee-b05a-7555b71e9892"
+      }
+    },
+    "owner": "sheepborn"
   }
 }
