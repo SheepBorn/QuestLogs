@@ -1,12 +1,22 @@
 import { StatusBar } from 'expo-status-bar';
-import { Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
+import { Redirect, router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import CustomButton from '../components/CustomButton';
+
 
 export default function App() {
   return (
-    <View className="flex-1 items-center justify-center bg-white">
-      <Text className="text-3xl">Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <SafeAreaView className="bg-primary h-full">
+      <StatusBar backgroundColor='#262424' style='light' />
+      <ScrollView contentContainerStyle={{height:'100%'}}>
+        <View className="w-full justify-center items-center h-full px-4">
+          <CustomButton title = "Continue as Guest"
+            handlePress={()=>router.push('/home')}
+          containerStyles="w-full mt-7"  
+          />
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
-
