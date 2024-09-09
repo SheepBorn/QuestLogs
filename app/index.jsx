@@ -4,7 +4,6 @@ import { Redirect, router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import CustomButton from '../components/CustomButton';
 
-
 export default function App() {
   return (
     <SafeAreaView className="bg-primary h-full">
@@ -12,7 +11,7 @@ export default function App() {
       <ScrollView contentContainerStyle={{height:'100%'}}>
         <View className="w-full justify-center items-center h-full px-4">
           <CustomButton title = "Continue as Guest"
-            handlePress={()=>router.push('/home')}
+            handlePress={()=>router.replace('/home')}
           containerStyles="w-full mt-7"  
           />
         </View>

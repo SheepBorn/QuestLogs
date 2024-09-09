@@ -1,12 +1,41 @@
-import { Modal, View, Text, TouchableOpacity, TouchableWithoutFeedback} from 'react-native'
+import { Modal, View, Text, TouchableOpacity, TouchableWithoutFeedback, Platform, PermissionsAndroid } from 'react-native'
 import { TextInput, Checkbox} from 'react-native-paper'
-import React from 'react'
+import React, {useRef} from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import CustomButton from '../../components/CustomButton';
+import { Stack, useLocalSearchParams } from 'expo-router';
+import MapView from 'react-native-maps';
+import * as Location from 'expo-location';
+import {SQLiteProvider, useSQLiteContext} from 'expo-sqlite'
 
 
-const InputField = ({ name, max, handleFocus, keyboard=true, edit=true, text, inputStyle='flex-1 bg-tertiary', viewStyle='flex-row items-center mb-5 bg-tertiary'}) => {
+const checkPermissions = async () => {
+  const { status: foregroundStatus } = await Location.getForegroundPermissionsAsync();
+  if (foregroundStatus !== 'granted') {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      setErrorMsg('Foreground location permission denied');
+      return;
+    }
+  }
+
+  if (Platform.OS === 'android') {
+    const { status: bgStatus } = await Location.getBackgroundPermissionsAsync();
+    if (bgStatus !== 'granted') {
+      const { status } = await Location.requestBackgroundPermissionsAsync();
+      if (status !== 'granted') {
+        setErrorMsg('Background location permission denied');
+        return;
+      }
+    }
+  }
+};
+
+const InputField = ({ name, max,setter, handleFocus, keyboard=true, edit=true, textInput, inputStyle='flex-1 bg-tertiary', viewStyle='flex-row items-center mb-5 bg-tertiary'}) => {
+
+  const [input, setInput] = useState('')
+
   return (
     <View className={`${viewStyle}`}>
       <TextInput
@@ -23,7 +52,9 @@ const InputField = ({ name, max, handleFocus, keyboard=true, edit=true, text, in
         onFocus={handleFocus}
         showSoftInputOnFocus={keyboard}
         editable= {edit}
-        value={text}
+        value={`${textInput? textInput : input}`}
+        onChangeText={(text)=>{textInput? '':setInput(text)}}
+        onBlur={()=>{setter(input)}}
       />
     </View>
   )
@@ -34,15 +65,23 @@ const inputData= (inData, setter) => {
 }
 
 
-
-
-
 const create = () => {
-  const [isModalVisible, setIsModalVisible] = useState(false)
+  const {item}=useLocalSearchParams()
+
+  const [FreqModalVisible, setFreqModalVisible] = useState(false)
+  const [MapModalVisible, setMapModalVisible] = useState(false)
   const [trackOption,setOption]=useState(0)
   const [trackData1,setData1]=useState(1)
   const [trackData2,setData2]=useState(3)
   const [trackData3,setData3]=useState(3)
+  const [isSaving, setSaving] = useState(false)
+
+
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [unit, setUnit] = useState('');
+  const [target, setTarget] = useState('');
+  const [freq, setFreq] = useState('1/1');
 
   const getText = () => {
     switch (trackOption){
@@ -59,8 +98,32 @@ const create = () => {
         return ''
     }
   }
-  const CheckBoxes = ({id,data,setter,text1,text2}) => {
 
+  function convertFreq(){
+    switch (trackOption){
+      case 0:
+      return setFreq(`${trackData1}/1`)
+  
+      case 1:
+      return setFreq(`${trackData2}/7`)
+  
+      case 2:
+      return setFreq(`${trackData3}/30`)
+  
+      default:
+        return ''
+    }
+  }
+  async function handleCreate(db){
+    try{
+      await db.execAsync('INSERT INTO quests (title,description,frequency,unit,target) VALUES (?,?,?,?,?)',[title,description,freq,unit,target]);
+        console.log(title,description,freq,unit,target)
+      } catch(error){
+        console.log('error data',error)
+      }
+  }
+
+  const CheckBoxes = ({id,data,setter,text1,text2}) => {
     const [tempData,setTemp]=useState(0)
   
     return(
@@ -84,19 +147,23 @@ const create = () => {
     )
   }
 
+  checkPermissions();
+
   return (
+    
     <SafeAreaView className= "bg-tertiary h-full px-4">
-      <InputField name="Title" max={40}/>
-      <InputField name="Description" max={300}/>
+      <InputField name="Title" setter={setTitle} max={40}/>
+      <InputField name="Description" setter={setDescription} max={300}/>
       <InputField name = "Frequency"
-      text={getText()}
+      textInput={getText()}
       keyboard={false}
-      edit={!isModalVisible}
-        handleFocus={()=>setIsModalVisible(true)}
+      edit={!FreqModalVisible}
+        handleFocus={()=>setFreqModalVisible(true)}
       />
       <Modal
-      visible={isModalVisible}
-      onRequestClose={()=>setIsModalVisible(false)}
+      visible={FreqModalVisible}
+      onRequestClose={()=>{setFreqModalVisible(false) 
+        convertFreq()}}
       transparent={true}
       animationType='fade'
       className="w-full justify-center items-center h-full px-4"
@@ -104,7 +171,9 @@ const create = () => {
       <View>
       <TouchableOpacity
       activeOpacity={0.5}
-      onPress={()=>setIsModalVisible(false)}
+      onPress={()=>{setFreqModalVisible(false)
+        convertFreq()}}
+
       className="w-full h-full justify-center items-center bg-black opacity-50"
       >
         
@@ -137,10 +206,45 @@ const create = () => {
 
       </TouchableWithoutFeedback>
       </Modal>
-      <View className="flex-row items-center self-start ">
-      <InputField name="Target" max={5} style='' viewStyle='flex-row items-center mb-5 bg-tertiary w-1/2 pr-4'/>
-      <InputField name="Unit" max={5} style='' viewStyle='flex-row items-center mb-5 bg-tertiary w-1/2 pl-4'/>
-      </View>
+      {item == 1? 
+        <View className="flex-row items-center self-start ">
+      <InputField name="Target" max={5} style='' setter={setTarget} viewStyle='flex-row items-center mb-10 bg-tertiary w-1/2 pr-4'/>
+      <InputField name="Unit" max={5} style='' setter={setUnit} viewStyle='flex-row items-center mb-10 bg-tertiary w-1/2 pl-4'/>
+      </View>:<CustomButton
+        title='Set Location'
+        containerStyles='min-h-[48px] min-w-[64px] rounded-md'
+        handlePress={()=>setMapModalVisible(true)}
+
+      />}
+      <Modal
+      visible={MapModalVisible}
+      onRequestClose={()=>setMapModalVisible(false)}
+      transparent={true}
+      animationType='slide'
+      className="w-full justify-center items-center h-full px-4"
+      >
+      <MapView
+        className="w-full h-full"
+        provider='google'
+        showsUserLocation={true}
+        showsMyLocationButton={true}
+        initialRegion={{
+          latitude: 1.3521,
+          longitude: 103.8198,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        }}
+        region={this.state}
+      />
+      </Modal>
+      
+      <CustomButton
+              title='save'
+              containerStyles='min-h-[48px] min-w-[64px] rounded-md'
+              handlePress={()=>setSaving(true)}
+            />
+      {/* {isSaving? <SQLiteProvider databaseName='quests.db' onInit={handleCreate} />:''} */}
+
     </SafeAreaView>
   )
 }

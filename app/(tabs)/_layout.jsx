@@ -22,11 +22,12 @@ const TabIcon = ({ icon, color, name, focused, size}) => {
 
 const TabsLayout = () => {
   return (
-    <>
-      
       <Tabs
          screenOptions={{
-            headerShown:false,
+          headerStyle: { backgroundColor: '#1E1E1E'},
+          headerTintColor:'#BEBEBE',
+          headerTitleAlign:'center',
+          title:'Quest Logs',
             tabBarShowLabel:false,
             tabBarActiveTintColor:'#F5F5F5',
             tabBarInactiveTintColor:'grey',
@@ -38,8 +39,6 @@ const TabsLayout = () => {
         <Tabs.Screen
           name= 'home'
           options={{
-            title:'Home',
-            headerShown:false,
             tabBarIcon:({color, focused}) => (
                 <TabIcon
                 icon="home"
@@ -67,9 +66,7 @@ const TabsLayout = () => {
             )
           }}
         />
-
        </Tabs>
-    </>
   )
 }
 
